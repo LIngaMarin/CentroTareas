@@ -1,0 +1,89 @@
+package com.ingamarin.centrotareas.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ingamarin.centrotareas.viewmodel.TareasViewModel
+
+/** Pantalla principal: tres tarjetas. Solo muestra el estado del ViewModel y le avisa los eventos. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PantallaTareas(vm: TareasViewModel) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("CentroTareas") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            TarjetaTarea("Tarea con progreso") {
+                // TODO Pasos 1 a 4: Tócame, tarea larga, progreso y cancelar
+                Text("Pendiente", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TarjetaTarea("Contar números primos") {
+                // TODO Paso 5: campo numérico, Contar, Cancelar y resultado
+                Text("Pendiente", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TarjetaTarea("Dos cargas") {
+                // TODO Pasos 6 y 7: Una por una, A la vez, Simular error y Reintentar
+                Text("Pendiente", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Card con el título en azul y el contenido centrado. */
+@Composable
+fun TarjetaTarea(titulo: String, contenido: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                titulo,
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+            contenido()
+        }
+    }
+}
