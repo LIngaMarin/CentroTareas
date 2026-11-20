@@ -9,6 +9,7 @@ import com.ingamarin.centrotareas.model.PrimosUi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -17,9 +18,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /** Estado de las tres tarjetas. Solo conoce la interface del Repository (no Context ni Composables). */
 class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
+
+    companion object {
+        /** Tiempo maximo de una carga cuando el interruptor esta activo. */
+        const val LIMITE_MS = 2000L
+    }
 
     // ----- Tarea con progreso (pasos 1 a 4)
     private val _mensaje = MutableStateFlow("Listo")
@@ -112,6 +119,15 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         _simularError.value = valor
     }
 
+    // ---------- Mejora IA 1: tiempo maximo ----------
+    // Interruptor "Tiempo maximo 2 s": si esta activo, la carga se corta con withTimeout
+    private val _limitarTiempo = MutableStateFlow(false)
+    val limitarTiempo: StateFlow<Boolean> = _limitarTiempo.asStateFlow()
+
+    fun cambiarLimitarTiempo(valor: Boolean) {
+        _limitarTiempo.value = valor
+    }
+
     /** Perfil (2 s) y despues pedidos (3 s): 2 + 3 = unos 5 s. */
     fun cargarUnaPorUna() = cargar("Una por una") {
         val perfil = repo.cargarPerfil()
@@ -141,8 +157,12 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         viewModelScope.launch {
             val inicio = System.currentTimeMillis()
             try {
-                val (perfil, pedidos) = obtener()
+                val (perfil, pedidos) =
+                    if (_limitarTiempo.value) withTimeout(LIMITE_MS) { obtener() } else obtener()
                 _carga.value = CargaUi.Exito(modo, perfil, pedidos.size, System.currentTimeMillis() - inicio)
+            } catch (e: TimeoutCancellationException) {
+                // Va ANTES que CancellationException: es una subclase suya
+                _carga.value = CargaUi.Error("Tardó demasiado (más de ${LIMITE_MS / 1000} s)")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

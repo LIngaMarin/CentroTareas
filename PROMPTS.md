@@ -1,0 +1,8 @@
+# PROMPTS.md · Fase 2 (rama `mejora-ia`)
+
+Mejoras de CentroTareas hechas con ayuda de **Gemini en Android Studio** (modelo gemini-3.5-flash-lite), sin romper MVVM + Repository.
+La IA propone; yo reviso, pruebo y corrijo lo que no respeta las reglas (nada de `GlobalScope`, `runBlocking` ni `Thread.sleep`, y siempre relanzar la `CancellationException`).
+
+| # | Prompt que escribí | Qué respondió Gemini | Qué cambié o descarté | Por qué |
+|---|---|---|---|---|
+| 1 | «Tengo una app Android en Kotlin con Compose y MVVM. TareasViewModel tiene cargarUnaPorUna() y cargarALaVez(), que llaman a un Repository con funciones suspend (perfil 2 s, pedidos 3 s) y terminan en CargaUi.Exito o CargaUi.Error. Quiero usar withTimeout para que, si una carga tarda más de 2 segundos, se muestre "Tardó demasiado". No uses GlobalScope, runBlocking ni Thread.sleep, y no rompas la cancelación. ¿Cómo lo hago?» | Envolvió la carga en `withTimeout(2000L)` dentro del `try`, atrapó `TimeoutCancellationException` **antes** que `CancellationException` (para mostrar *Tardó demasiado*) y dejó el `catch (e: CancellationException) { throw e }`. | Mantuve el orden de los `catch` y el `throw e`. Pero el límite **no** se aplica siempre: agregué el interruptor *Tiempo máximo 2 s* (`limitarTiempo`) y la constante `LIMITE_MS`. | Con el límite siempre activo, *A la vez* (3 s) y *Una por una* (5 s) fallarían **siempre**, y se perdería la comparación del Paso 6. El orden de los `catch` sí era clave: `TimeoutCancellationException` es subclase de `CancellationException`; al revés, el `throw e` la habría relanzado y nunca se vería el mensaje. |

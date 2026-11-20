@@ -56,6 +56,7 @@ fun PantallaTareas(vm: TareasViewModel) {
     val hastaContado by vm.hastaContado.collectAsStateWithLifecycle()
     val carga by vm.carga.collectAsStateWithLifecycle()
     val simularError by vm.simularError.collectAsStateWithLifecycle()
+    val limitarTiempo by vm.limitarTiempo.collectAsStateWithLifecycle()
     // Por defecto 8 000 000: con 500 000 tardaba ~100 ms en este emulador; la guia pide entre 2 y 5 s
     var textoHasta by rememberSaveable { mutableStateOf("8000000") }
 
@@ -131,6 +132,14 @@ fun PantallaTareas(vm: TareasViewModel) {
                 ) {
                     Switch(checked = simularError, onCheckedChange = { vm.cambiarSimularError(it) })
                     Text("Simular error")
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Switch(checked = limitarTiempo, onCheckedChange = { vm.cambiarLimitarTiempo(it) })
+                    Text("Tiempo máximo 2 s")
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { vm.cargarUnaPorUna() }, enabled = !cargando) { Text("Una por una") }
