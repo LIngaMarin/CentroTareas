@@ -8,6 +8,9 @@ sealed interface PrimosUi {
     data object Cancelado : PrimosUi
 }
 
+/** Un intento de carga exitoso, para la tabla de comparacion (Mejora IA 2). */
+data class IntentoCarga(val modo: String, val milisegundos: Long)
+
 /** Estados de las dos cargas (perfil y pedidos). */
 sealed interface CargaUi {
     data object Inicial : CargaUi

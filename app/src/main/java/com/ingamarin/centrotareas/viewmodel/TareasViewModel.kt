@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ingamarin.centrotareas.data.TareasRepository
 import com.ingamarin.centrotareas.model.CargaUi
+import com.ingamarin.centrotareas.model.IntentoCarga
 import com.ingamarin.centrotareas.model.PrimosUi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -14,8 +15,12 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -26,6 +31,9 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
     companion object {
         /** Tiempo maximo de una carga cuando el interruptor esta activo. */
         const val LIMITE_MS = 2000L
+
+        /** Cuantos intentos guarda la tabla de comparacion. */
+        const val MAX_HISTORIAL = 6
     }
 
     // ----- Tarea con progreso (pasos 1 a 4)
@@ -128,6 +136,23 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         _limitarTiempo.value = valor
     }
 
+    // ---------- Mejora IA 2: comparacion de tiempos ----------
+    private val _historial = MutableStateFlow<List<IntentoCarga>>(emptyList())
+    val historial: StateFlow<List<IntentoCarga>> = _historial.asStateFlow()
+
+    /** Promedio en ms de cada modo ("Una por una", "A la vez") segun el historial. */
+    val promedios: StateFlow<Map<String, Long>> = _historial
+        .map { lista ->
+            lista.groupBy { it.modo }.mapValues { (_, intentos) ->
+                intentos.map { it.milisegundos }.average().toLong()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    fun limpiarHistorial() {
+        _historial.value = emptyList()
+    }
+
     /** Perfil (2 s) y despues pedidos (3 s): 2 + 3 = unos 5 s. */
     fun cargarUnaPorUna() = cargar("Una por una") {
         val perfil = repo.cargarPerfil()
@@ -159,7 +184,10 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
             try {
                 val (perfil, pedidos) =
                     if (_limitarTiempo.value) withTimeout(LIMITE_MS) { obtener() } else obtener()
-                _carga.value = CargaUi.Exito(modo, perfil, pedidos.size, System.currentTimeMillis() - inicio)
+                val ms = System.currentTimeMillis() - inicio
+                _carga.value = CargaUi.Exito(modo, perfil, pedidos.size, ms)
+                // Se guarda el intento; solo los ultimos MAX_HISTORIAL para que la tabla no crezca sin limite
+                _historial.update { (it + IntentoCarga(modo, ms)).takeLast(MAX_HISTORIAL) }
             } catch (e: TimeoutCancellationException) {
                 // Va ANTES que CancellationException: es una subclase suya
                 _carga.value = CargaUi.Error("Tardó demasiado (más de ${LIMITE_MS / 1000} s)")

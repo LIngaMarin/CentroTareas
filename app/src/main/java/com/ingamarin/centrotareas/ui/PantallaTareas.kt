@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ingamarin.centrotareas.model.CargaUi
+import com.ingamarin.centrotareas.model.IntentoCarga
 import com.ingamarin.centrotareas.model.PrimosUi
 import com.ingamarin.centrotareas.ui.theme.VerdeFondo
 import com.ingamarin.centrotareas.ui.theme.VerdeTexto
@@ -57,6 +60,8 @@ fun PantallaTareas(vm: TareasViewModel) {
     val carga by vm.carga.collectAsStateWithLifecycle()
     val simularError by vm.simularError.collectAsStateWithLifecycle()
     val limitarTiempo by vm.limitarTiempo.collectAsStateWithLifecycle()
+    val historial by vm.historial.collectAsStateWithLifecycle()
+    val promedios by vm.promedios.collectAsStateWithLifecycle()
     // Por defecto 8 000 000: con 500 000 tardaba ~100 ms en este emulador; la guia pide entre 2 y 5 s
     var textoHasta by rememberSaveable { mutableStateOf("8000000") }
 
@@ -170,8 +175,55 @@ fun PantallaTareas(vm: TareasViewModel) {
                         OutlinedButton(onClick = { vm.reintentar() }) { Text("Reintentar") }
                     }
                 }
+
+                // Tabla de comparacion de tiempos (solo si ya hay intentos)
+                if (historial.isNotEmpty()) {
+                    TablaTiempos(
+                        historial = historial,
+                        promedios = promedios,
+                        onLimpiar = { vm.limpiarHistorial() }
+                    )
+                }
             }
         }
+    }
+}
+
+/** Tabla con los ultimos intentos, el promedio de cada modo y cuanto ahorra "A la vez". */
+@Composable
+fun TablaTiempos(
+    historial: List<IntentoCarga>,
+    promedios: Map<String, Long>,
+    onLimpiar: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        HorizontalDivider()
+        Text("Comparación de tiempos", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Row(Modifier.fillMaxWidth()) {
+            Text("#", Modifier.weight(0.5f), fontWeight = FontWeight.Bold)
+            Text("Modo", Modifier.weight(2f), fontWeight = FontWeight.Bold)
+            Text("Tiempo", Modifier.weight(1.5f), fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+        }
+        historial.forEachIndexed { i, intento ->
+            Row(Modifier.fillMaxWidth()) {
+                Text("${i + 1}", Modifier.weight(0.5f))
+                Text(intento.modo, Modifier.weight(2f))
+                Text("${intento.milisegundos} ms", Modifier.weight(1.5f), textAlign = TextAlign.End)
+            }
+        }
+        val unaPorUna = promedios["Una por una"]
+        val aLaVez = promedios["A la vez"]
+        if (unaPorUna != null && aLaVez != null) {
+            RecuadroExito(
+                "A la vez ahorra ${unaPorUna - aLaVez} ms",
+                "Promedio una por una: $unaPorUna ms",
+                "Promedio a la vez: $aLaVez ms"
+            )
+        }
+        TextButton(onClick = onLimpiar, modifier = Modifier.align(Alignment.End)) { Text("Limpiar historial") }
     }
 }
 
