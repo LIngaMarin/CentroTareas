@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ingamarin.centrotareas.model.CargaUi
 import com.ingamarin.centrotareas.model.PrimosUi
 import com.ingamarin.centrotareas.ui.theme.VerdeFondo
 import com.ingamarin.centrotareas.ui.theme.VerdeTexto
@@ -50,6 +52,7 @@ fun PantallaTareas(vm: TareasViewModel) {
     val corriendo by vm.corriendo.collectAsStateWithLifecycle()
     val primos by vm.primos.collectAsStateWithLifecycle()
     val hastaContado by vm.hastaContado.collectAsStateWithLifecycle()
+    val carga by vm.carga.collectAsStateWithLifecycle()
     // Por defecto 8 000 000: con 500 000 tardaba ~100 ms en este emulador; la guia pide entre 2 y 5 s
     var textoHasta by rememberSaveable { mutableStateOf("8000000") }
 
@@ -117,8 +120,23 @@ fun PantallaTareas(vm: TareasViewModel) {
                 }
             }
             TarjetaTarea("Dos cargas") {
-                // TODO Pasos 6 y 7: Una por una, A la vez, Simular error y Reintentar
-                Text("Pendiente", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val cargando = carga is CargaUi.Cargando
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { vm.cargarUnaPorUna() }, enabled = !cargando) { Text("Una por una") }
+                    Button(onClick = { vm.cargarALaVez() }, enabled = !cargando) { Text("A la vez") }
+                }
+                when (val c = carga) {
+                    CargaUi.Inicial -> Unit
+                    CargaUi.Cargando -> CircularProgressIndicator()
+                    is CargaUi.Exito -> RecuadroExito(
+                        "Modo: ${c.modo}",
+                        "Perfil: ${c.perfil}",
+                        "Pedidos: ${c.pedidos}",
+                        "Tiempo: ${c.milisegundos} ms"
+                    )
+                    // TODO Paso 7: recuadro de error con Reintentar
+                    is CargaUi.Error -> Text(c.mensaje, color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
