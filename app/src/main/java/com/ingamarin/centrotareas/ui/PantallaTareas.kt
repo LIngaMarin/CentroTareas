@@ -59,7 +59,7 @@ fun PantallaTareas(vm: TareasViewModel) {
         ) {
             TarjetaTarea("Tarea con progreso") {
                 Button(onClick = { toques++ }) { Text("Tócame: $toques") }
-                Button(onClick = { vm.tareaLargaMala() }) { Text("Tarea larga (MAL)") }
+                Button(onClick = { vm.tareaLarga() }) { Text("Tarea larga") }
                 Text(mensaje, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TarjetaTarea("Contar números primos") {
