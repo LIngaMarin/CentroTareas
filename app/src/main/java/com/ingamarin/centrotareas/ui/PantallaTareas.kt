@@ -12,6 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import com.ingamarin.centrotareas.viewmodel.TareasViewModel
 @Composable
 fun PantallaTareas(vm: TareasViewModel) {
     val mensaje by vm.mensaje.collectAsStateWithLifecycle()
+    val progreso by vm.progreso.collectAsStateWithLifecycle()
 
     // Prueba de vida: si deja de sumar, la pantalla esta congelada
     var toques by rememberSaveable { mutableIntStateOf(0) }
@@ -59,7 +61,12 @@ fun PantallaTareas(vm: TareasViewModel) {
         ) {
             TarjetaTarea("Tarea con progreso") {
                 Button(onClick = { toques++ }) { Text("Tócame: $toques") }
-                Button(onClick = { vm.tareaLarga() }) { Text("Tarea larga") }
+                Button(onClick = { vm.tareaLarga() }) { Text("Iniciar") }
+                LinearProgressIndicator(
+                    progress = { progreso },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("${(progreso * 100).toInt()} %", style = MaterialTheme.typography.bodySmall)
                 Text(mensaje, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TarjetaTarea("Contar números primos") {
