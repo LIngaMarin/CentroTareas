@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -16,20 +18,27 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ingamarin.centrotareas.model.PrimosUi
+import com.ingamarin.centrotareas.ui.theme.VerdeFondo
+import com.ingamarin.centrotareas.ui.theme.VerdeTexto
 import com.ingamarin.centrotareas.viewmodel.TareasViewModel
 
 /** Pantalla principal: tres tarjetas. Solo muestra el estado del ViewModel y le avisa los eventos. */
@@ -39,6 +48,10 @@ fun PantallaTareas(vm: TareasViewModel) {
     val mensaje by vm.mensaje.collectAsStateWithLifecycle()
     val progreso by vm.progreso.collectAsStateWithLifecycle()
     val corriendo by vm.corriendo.collectAsStateWithLifecycle()
+    val primos by vm.primos.collectAsStateWithLifecycle()
+    val hastaContado by vm.hastaContado.collectAsStateWithLifecycle()
+    // Por defecto 8 000 000: con 500 000 tardaba ~100 ms en este emulador; la guia pide entre 2 y 5 s
+    var textoHasta by rememberSaveable { mutableStateOf("8000000") }
 
     // Prueba de vida: si deja de sumar, la pantalla esta congelada
     var toques by rememberSaveable { mutableIntStateOf(0) }
@@ -76,13 +89,55 @@ fun PantallaTareas(vm: TareasViewModel) {
                 Text(mensaje, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             TarjetaTarea("Contar números primos") {
-                // TODO Paso 5: campo numérico, Contar, Cancelar y resultado
-                Text("Pendiente", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val calculando = primos is PrimosUi.Calculando
+                OutlinedTextField(
+                    value = textoHasta,
+                    onValueChange = { textoHasta = it.filter(Char::isDigit) },
+                    label = { Text("Hasta el número") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        // Se ignoran textos no numericos o menores que 2
+                        onClick = { textoHasta.toIntOrNull()?.takeIf { it >= 2 }?.let { vm.contar(it) } },
+                        enabled = !calculando
+                    ) { Text("Contar") }
+                    OutlinedButton(onClick = { vm.cancelarPrimos() }, enabled = calculando) { Text("Cancelar") }
+                }
+                when (val p = primos) {
+                    PrimosUi.Inicial -> Unit
+                    PrimosUi.Calculando -> Text("Calculando...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    is PrimosUi.Listo -> RecuadroExito(
+                        "Primos hasta $hastaContado: ${p.cantidad}",
+                        "Tiempo: ${p.milisegundos} ms"
+                    )
+                    PrimosUi.Cancelado -> Text("Cancelado", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             TarjetaTarea("Dos cargas") {
                 // TODO Pasos 6 y 7: Una por una, A la vez, Simular error y Reintentar
                 Text("Pendiente", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+/** Recuadro verde con el resultado: primera linea en negrita y el resto debajo. */
+@Composable
+fun RecuadroExito(titulo: String, vararg lineas: String) {
+    Surface(
+        color = VerdeFondo,
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(titulo, color = VerdeTexto, fontWeight = FontWeight.Bold)
+            lineas.forEach { Text(it, color = VerdeTexto, style = MaterialTheme.typography.bodySmall) }
         }
     }
 }
