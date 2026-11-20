@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ingamarin.centrotareas.model.CargaUi
@@ -53,6 +55,7 @@ fun PantallaTareas(vm: TareasViewModel) {
     val primos by vm.primos.collectAsStateWithLifecycle()
     val hastaContado by vm.hastaContado.collectAsStateWithLifecycle()
     val carga by vm.carga.collectAsStateWithLifecycle()
+    val simularError by vm.simularError.collectAsStateWithLifecycle()
     // Por defecto 8 000 000: con 500 000 tardaba ~100 ms en este emulador; la guia pide entre 2 y 5 s
     var textoHasta by rememberSaveable { mutableStateOf("8000000") }
 
@@ -121,6 +124,14 @@ fun PantallaTareas(vm: TareasViewModel) {
             }
             TarjetaTarea("Dos cargas") {
                 val cargando = carga is CargaUi.Cargando
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Switch(checked = simularError, onCheckedChange = { vm.cambiarSimularError(it) })
+                    Text("Simular error")
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { vm.cargarUnaPorUna() }, enabled = !cargando) { Text("Una por una") }
                     Button(onClick = { vm.cargarALaVez() }, enabled = !cargando) { Text("A la vez") }
@@ -134,8 +145,21 @@ fun PantallaTareas(vm: TareasViewModel) {
                         "Pedidos: ${c.pedidos}",
                         "Tiempo: ${c.milisegundos} ms"
                     )
-                    // TODO Paso 7: recuadro de error con Reintentar
-                    is CargaUi.Error -> Text(c.mensaje, color = MaterialTheme.colorScheme.error)
+                    is CargaUi.Error -> {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                c.mensaje,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                        OutlinedButton(onClick = { vm.reintentar() }) { Text("Reintentar") }
+                    }
                 }
             }
         }
