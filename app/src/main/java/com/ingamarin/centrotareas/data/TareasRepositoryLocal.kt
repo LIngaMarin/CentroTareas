@@ -24,14 +24,20 @@ class TareasRepositoryLocal : TareasRepository {
      * Calculo pesado (usa mucho procesador): va a Dispatchers.Default.
      * ensureActive() en cada vuelta permite cancelarlo a mitad del calculo.
      */
-    override suspend fun contarPrimos(hasta: Int): Int = withContext(Dispatchers.Default) {
-        var cantidad = 0
-        for (n in 2..hasta) {
-            ensureActive()
-            if (esPrimo(n)) cantidad++
+    override suspend fun contarPrimos(hasta: Int, onProgreso: (Float) -> Unit): Int =
+        withContext(Dispatchers.Default) {
+            var cantidad = 0
+            val total = (hasta - 1).coerceAtLeast(1)
+            // Avisa solo cuando cambia el porcentaje: como maximo 100 avisos, no millones
+            val paso = (total / 100).coerceAtLeast(1)
+            for (n in 2..hasta) {
+                ensureActive()
+                if (esPrimo(n)) cantidad++
+                if ((n - 1) % paso == 0) onProgreso((n - 1).toFloat() / total)
+            }
+            onProgreso(1f)
+            cantidad
         }
-        cantidad
-    }
 
     /** true si ningun d entre 2 y la raiz de n divide a n. d * d <= n en Long evita desbordes. */
     private fun esPrimo(n: Int): Boolean {

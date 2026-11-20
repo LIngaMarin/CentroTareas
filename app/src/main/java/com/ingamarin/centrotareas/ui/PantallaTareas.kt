@@ -120,7 +120,16 @@ fun PantallaTareas(vm: TareasViewModel) {
                 }
                 when (val p = primos) {
                     PrimosUi.Inicial -> Unit
-                    PrimosUi.Calculando -> Text("Calculando...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    is PrimosUi.Calculando -> {
+                        LinearProgressIndicator(
+                            progress = { p.progreso },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            "Calculando... ${(p.progreso * 100).toInt()} %",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     is PrimosUi.Listo -> RecuadroExito(
                         "Primos hasta $hastaContado: ${p.cantidad}",
                         "Tiempo: ${p.milisegundos} ms"

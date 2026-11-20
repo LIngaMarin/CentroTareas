@@ -3,7 +3,8 @@ package com.ingamarin.centrotareas.model
 /** Estados del calculo de primos. */
 sealed interface PrimosUi {
     data object Inicial : PrimosUi
-    data object Calculando : PrimosUi
+    /** progreso de 0f a 1f (Mejora IA 3). */
+    data class Calculando(val progreso: Float = 0f) : PrimosUi
     data class Listo(val cantidad: Int, val milisegundos: Long) : PrimosUi
     data object Cancelado : PrimosUi
 }
